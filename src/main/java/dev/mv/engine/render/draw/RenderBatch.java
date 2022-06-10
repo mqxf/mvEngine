@@ -14,7 +14,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
-public class RenderBatch {
+public class RenderBatch extends Object {
     // pos, pos, 	col, col, col, col,		texCoord, texCoord, 	texID
 
     private final int POS_SIZE = 2;
@@ -83,24 +83,6 @@ public class RenderBatch {
 
         glVertexAttribPointer(3, TEX_ID_SIZE, GL_FLOAT, false, VERTEX_SIZE_BYTES, TEX_ID_OFFSET);
         glEnableVertexAttribArray(3);
-    }
-
-    public void addSprite(Sprite sprite) {
-        int index = this.spriteNum;
-        this.sprites[index] = sprite;
-        this.spriteNum++;
-
-        if(sprite.getTexture() != null) {
-            if(!textures.contains(sprite.getTexture())) {
-                textures.add(sprite.getTexture());
-            }
-        }
-
-        loadVertexProperties(index);
-
-        if(this.spriteNum >= this.maxSize) {
-            this.hasRoom = false;
-        }
     }
 
     public void render() throws ShaderLinkException {

@@ -1,6 +1,9 @@
 package dev.mv.engine.render;
 
 import dev.mv.engine.render.draw.Draw;
+import dev.mv.engine.render.draw.ImageBuffer;
+import dev.mv.engine.render.handler.DisplayManager;
+import lombok.Getter;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
@@ -27,6 +30,10 @@ public class Display{
     private int vertexShader;
     private int fragmentShader;
 
+    private DisplayManager handle;
+    @Getter
+    private ImageBuffer imageBuffer;
+
     private float[] vertices = {
             1.0f, 1.0f, 0.0f,
             -1.0f, 1.0f, 0.0f,
@@ -38,16 +45,20 @@ public class Display{
             0, 1, 2, 1, 3, 2
     };
 
-    public Display(String title, int width, int height, boolean rez) {
+    public Display(String title, int width, int height, boolean rez, DisplayManager handle) {
         this.title = title;
         this.width = width;
         this.height = height;
         this.rez = rez;
+        this.handle = handle;
+        imageBuffer = new ImageBuffer();
     }
 
     public void run() {
+        imageBuffer.init(this);
         init();
         Draw.init(this);
+        handle.start();
         loop();
 
         glfwFreeCallbacks(winAddr);
@@ -98,13 +109,16 @@ public class Display{
             glfwPollEvents();
             glClear(GL_COLOR_BUFFER_BIT);
 
+            //might move position
+            imageBuffer.render();
+
             long now = System.nanoTime();
             delta += (now - lastime) / ns;
             lastime = now;
 
             if(delta >= 1) {
                 glEnable(GL_TEXTURE_2D);
-                //Call main method, using factory or smth
+                handle.update();
                 frames++;
                 delta--;
                 if(System.currentTimeMillis() - time >= 1000) {

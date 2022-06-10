@@ -2,14 +2,13 @@ package dev.mv.engine.render.draw;
 
 import dev.mv.engine.render.Display;
 import dev.mv.engine.render.textures.Texture;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ImageBuffer {
 
-    private ArrayList<VertexImage> buffer;
+    private List<VertexImage> buffer;
     private Display d;
 
     public void init(Display d) {
@@ -44,11 +43,13 @@ public class ImageBuffer {
 		};
 
         buffer.add(new VertexImage(indices, vertices, texCoords, tex));
-
     }
 
-    public void render(){
-        //Do something
+    public void render() {
+
+        RenderBatch batch = new RenderBatch(1000);
+        batch.
+        batch = null;
 
         buffer.clear();
     }
