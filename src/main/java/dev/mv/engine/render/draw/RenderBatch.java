@@ -1,16 +1,17 @@
 package dev.mv.engine.render.draw;
 
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.*;
+import dev.mv.engine.math.vector.Vector2f;
+import dev.mv.engine.math.vector.Vector4f;
+import dev.mv.engine.render.textures.Texture;
+import dev.mv.engine.shader.Shader;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import Vector.Vector2f;
-import Vector.Vector4f;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 public class RenderBatch {
     // pos, pos, 	col, col, col, col,		texCoord, texCoord, 	texID
@@ -49,7 +50,7 @@ public class RenderBatch {
 
         this.spriteNum = 0;
         this.hasRoom = true;
-        this.textures = new ArrayList<>();
+        this.textures = new ArrayList<Texture>();
         this.sprites = new Sprite[maxSize];
 
         this.maxSize = maxSize;
@@ -58,6 +59,9 @@ public class RenderBatch {
     public void init() {
         vaoID = glGenVertexArrays();
         glBindVertexArray(vaoID);
+
+        Vector2f v = new Vector2f(1, 1);
+        v.getX();
 
         vboID = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vboID);

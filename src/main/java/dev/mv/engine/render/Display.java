@@ -1,5 +1,6 @@
 package dev.mv.engine.render;
 
+import dev.mv.engine.render.draw.Draw;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
@@ -44,7 +45,7 @@ public class Display{
         this.rez = rez;
 
         init();
-        gmt.init(this);
+        Draw.init(this);
         loop();
 
         glfwFreeCallbacks(winAddr);
@@ -101,7 +102,7 @@ public class Display{
 
             if(delta >= 1) {
                 glEnable(GL_TEXTURE_2D);
-                main.running();
+                //Call main method, using factory or smth
                 frames++;
                 delta--;
                 if(System.currentTimeMillis() - time >= 1000) {
