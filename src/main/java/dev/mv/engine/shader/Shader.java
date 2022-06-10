@@ -1,6 +1,7 @@
 package dev.mv.engine.shader;
 
 import dev.mv.engine.exceptions.ShaderCreateException;
+import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.utils.FileUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,20 +42,20 @@ public class Shader {
         }
     }
 
-    public void use(){
+    public void use() throws ShaderLinkException {
         glAttachShader(programID, vertexShader);
         glAttachShader(programID, fragmentShader);
 
         glBindAttribLocation(programID,0 , "vertices");
         glLinkProgram(programID);
         if((glGetProgrami(programID, GL_LINK_STATUS)) != 1) {
-            System.err.println("link program error: "+glGetProgramInfoLog(programID));
-            System.exit(1);
+            throw new ShaderLinkException("link program error: "+glGetProgramInfoLog(programID));
         }
         glValidateProgram(programID);
         if((glGetProgrami(programID, GL_VALIDATE_STATUS)) != 1) {
-            System.err.println("validate program error: "+glGetProgramInfoLog(programID));
-            System.exit(1);
+            throw new ShaderLinkException("link program error: "+glGetProgramInfoLog(programID));
         }
+
+        glUseProgram(programID);
     }
 }

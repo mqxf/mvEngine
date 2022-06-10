@@ -1,5 +1,6 @@
 package dev.mv.engine.render.draw;
 
+import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.math.vector.Vector2f;
 import dev.mv.engine.math.vector.Vector4f;
 import dev.mv.engine.render.textures.Texture;
@@ -44,7 +45,6 @@ public class RenderBatch {
 
     public RenderBatch(int maxSize) {
         shader = new Shader("./shaders/shader.vs", "./shaders/shader.fs");
-        shader.compile();
 
         vertices = new float[maxSize * 4 * VERTEX_SIZE];
 
@@ -103,7 +103,7 @@ public class RenderBatch {
         }
     }
 
-    public void render() {
+    public void render() throws ShaderLinkException {
         glBindBuffer(GL_ARRAY_BUFFER, vboID);
         glBufferSubData(GL_ARRAY_BUFFER, 0, vertices);
 

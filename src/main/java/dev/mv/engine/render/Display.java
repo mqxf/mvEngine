@@ -43,7 +43,9 @@ public class Display{
         this.width = width;
         this.height = height;
         this.rez = rez;
+    }
 
+    public void run() {
         init();
         Draw.init(this);
         loop();
