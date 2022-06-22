@@ -1,189 +1,105 @@
 package dev.mv.engine.render.draw;
 
-import dev.mv.engine.exceptions.ShaderLinkException;
-import dev.mv.engine.math.vector.Vector2f;
-import dev.mv.engine.math.vector.Vector4f;
-import dev.mv.engine.render.textures.Texture;
 import dev.mv.engine.shader.Shader;
+import org.lwjgl.BufferUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.util.Arrays;
 
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.glBindVertexArray;
-import static org.lwjgl.opengl.GL30.glGenVertexArrays;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 
-public class RenderBatch extends Object {
-    // pos, pos, 	col, col, col, col,		texCoord, texCoord, 	texID
+public class RenderBatch {
 
-    private final int POS_SIZE = 2;
-    private final int COL_SIZE = 4;
-    private final int TEX_COORD_SIZE = 2;
-    private final int TEX_ID_SIZE = 1;
-
-    private final int POS_OFFSET = 0;
-    private final int COl_OFFSET = POS_OFFSET + POS_SIZE * Float.BYTES;
-    private final int TEX_COORD_OFFSET = COl_OFFSET + COL_SIZE * Float.BYTES;
-    private final int TEX_ID_OFFSET = TEX_COORD_OFFSET + TEX_COORD_SIZE * Float.BYTES;
-
-    private final int VERTEX_SIZE = 9;
-    private final int VERTEX_SIZE_BYTES = VERTEX_SIZE * Float.BYTES;
-
-    private int spriteNum;
-    private boolean hasRoom;
-
-    private Sprite[] sprites;
-    private List<Texture> textures;
-
-    private Shader shader;
-    private float[] vertices;
-    private int[] texSlots = {0, 1, 2, 3, 4, 5, 6, 7};
-    private int vaoID;
-    private int vboID;
     private int maxSize;
+    private float[] data;
+    private int vbuffer_id;
+    private int ibuffer_id;
+    private int bufferIndex = 0;
+
+    private Shader shader = new Shader("./shaders/default.vs", "./shaders/default.fs");
+
+    private FloatBuffer vbo;
+    private IntBuffer ibo;
+
+    private int[] indices = {0, 1, 2, 3, 1, 2,
+                            4, 5, 6, 7, 5, 6};
+
+    private ByteBuffer buffer;
+
+    //pos    color
+    //f f f  f f f
+
+    private static final int POS_SIZE = 12;
+    private static final int COLOR_SIZE = 4;
+    private static final int TEX_COORD_SIZE = 4;
+    private static final int TEX_SLOT_ID_SIZE = 1;
+
+    private static final int VERTEX_SIZE = POS_SIZE + COLOR_SIZE + TEX_COORD_SIZE + TEX_SLOT_ID_SIZE;
+    private static final int VERTEX_SIZE_BYTES = VERTEX_SIZE * Float.BYTES;
+    private static int BUFFER_SIZE = 0;
+
+
 
     public RenderBatch(int maxSize) {
-        shader = new Shader("./shaders/shader.vs", "./shaders/shader.fs");
-
-        vertices = new float[maxSize * 4 * VERTEX_SIZE];
-
-        this.spriteNum = 0;
-        this.hasRoom = true;
-        this.textures = new ArrayList<Texture>();
-        this.sprites = new Sprite[maxSize];
-
         this.maxSize = maxSize;
+        setupBatch();
     }
 
-    public void init() {
-        vaoID = glGenVertexArrays();
-        glBindVertexArray(vaoID);
+    private void setupBatch() {
+        this.BUFFER_SIZE = this.maxSize * VERTEX_SIZE_BYTES;
+        this.data = new float[this.BUFFER_SIZE];
+        this.vbuffer_id = glGenBuffers();
+        this.ibuffer_id = glGenBuffers();
+        buffer.allocate(this.maxSize * VERTEX_SIZE_BYTES);
+        glBufferData(GL_ARRAY_BUFFER, this.BUFFER_SIZE, GL_DYNAMIC_DRAW);
 
-        Vector2f v = new Vector2f(1, 1);
-        v.getX();
+        this.vbo = BufferUtils.createFloatBuffer(this.BUFFER_SIZE);
+        this.ibo = BufferUtils.createIntBuffer(12);
 
-        vboID = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vboID);
-        glBufferData(GL_ARRAY_BUFFER, vertices.length * Float.BYTES, GL_DYNAMIC_DRAW);
-
-        int eboID = glGenBuffers();
-        int[] indices = generateIndices();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, POS_SIZE, GL_FLOAT, false, VERTEX_SIZE_BYTES, POS_OFFSET);
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, COL_SIZE, GL_FLOAT, false, VERTEX_SIZE_BYTES, COl_OFFSET);
-        glEnableVertexAttribArray(1);
-
-        glVertexAttribPointer(2, TEX_COORD_SIZE, GL_FLOAT, false, VERTEX_SIZE_BYTES, TEX_COORD_OFFSET);
-        glEnableVertexAttribArray(2);
-
-        glVertexAttribPointer(3, TEX_ID_SIZE, GL_FLOAT, false, VERTEX_SIZE_BYTES, TEX_ID_OFFSET);
-        glEnableVertexAttribArray(3);
-    }
-
-    public void render() throws ShaderLinkException {
-        glBindBuffer(GL_ARRAY_BUFFER, vboID);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices);
-
+        shader.make();
         shader.use();
+    }
 
-        for(int i=0;i<textures.size();i++) {
-            glActiveTexture(GL_TEXTURE0 + i + 1);
-            textures.get(i).bind();
+    public void addVertexArrayToBatch(float[] data) {
+        for(int i = 0; i < data.length; i++) {
+            this.data[this.bufferIndex * 12 + i] = data[i];
         }
+        this.bufferIndex++;
+    }
 
-        shader.uploadIntArray("uTextures", texSlots);
+    public void pushBatchToGPU() {
 
-        glBindVertexArray(vaoID);
+        System.out.println(Arrays.toString(this.data));
+        this.vbo.put(this.data);
+        this.ibo.put(this.indices);
+
+        this.vbo.flip();
+        this.ibo.flip();
+    }
+
+    public void render() {
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbuffer_id);
+        glBufferData(vbuffer_id, this.data, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, this.vbuffer_id);
+        glBufferData(GL_ARRAY_BUFFER, this.vbo, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this.ibuffer_id);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, this.ibo, GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*Float.BYTES, 0);
         glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
+        //glVertexAttribPointer(1, 3, GL_FLOAT, false, 6*Float.BYTES, 3*Float.BYTES);
+        //glEnableVertexAttribArray(1);
 
-        glDrawElements(GL_TRIANGLES, this.spriteNum * 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, indices.length * (this.bufferIndex + 1), GL_UNSIGNED_INT, 0);
 
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glBindVertexArray(0);
-
-        for(int i=0;i<textures.size();i++) {
-            textures.get(i).unbind();
-        }
-    }
-
-    private void loadVertexProperties(int index) {
-        Sprite sprite = this.sprites[index];
-
-        int offset = index * 4 * VERTEX_SIZE;
-
-        int texID = 0;
-
-        if(sprite.getTexture() != null) {
-            for(int i=0;i<textures.size();i++) {
-                if(textures.get(i) == sprite.getTexture()) {
-                    texID = i + 1;
-                    break;
-                }
-            }
-        }
-
-        float xAdd = 1.0f;
-        float yAdd = 1.0f;
-
-        Vector4f color = sprite.getColor();
-        Vector2f[] texCoords = sprite.getTexCoords();
-
-        for(int i=0;i<4;i++) {
-            if(i == 1)yAdd = 0.0f;
-            else if(i == 1)xAdd = 0.0f;
-            else if(i == 1)yAdd = 1.0f;
-
-            //load pos
-            vertices[offset] = sprite.getPosition().x + (xAdd * sprite.getScale().x);
-            vertices[offset + 1] = sprite.getPosition().y + (yAdd * sprite.getScale().y);
-
-            //load col
-            vertices[offset + 2] = color.x;
-            vertices[offset + 3] = color.y;
-            vertices[offset + 4] = color.z;
-            vertices[offset + 5] = color.w;
-
-            //load texCoords
-            vertices[offset + 6] = texCoords[i].x;
-            vertices[offset + 7] = texCoords[i].y;
-
-            //load texId
-            vertices[offset + 8] = texID;
-
-            offset += VERTEX_SIZE;
-        }
-    }
-
-    private int[] generateIndices() {
-        int[] elements = new int[6 * this.maxSize];
-        for(int i=0;i<this.maxSize;i++) {
-            loadElementIndices(elements, i);
-        }
-
-        return elements;
-    }
-
-    public boolean hasRoom() {
-        return this.hasRoom;
-    }
-
-    private void loadElementIndices(int[] elements, int index) {
-        int offsetArrayIndex = 6 * index;
-        int offset = 4 * index;
-
-        elements[offsetArrayIndex] = offset + 3;
-        elements[offsetArrayIndex + 1] = offset + 2;
-        elements[offsetArrayIndex + 2] = offset + 0;
-
-        elements[offsetArrayIndex] = offset + 0;
-        elements[offsetArrayIndex + 1] = offset + 2;
-        elements[offsetArrayIndex + 2] = offset + 1;
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 }

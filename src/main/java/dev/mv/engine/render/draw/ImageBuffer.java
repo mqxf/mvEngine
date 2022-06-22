@@ -48,8 +48,8 @@ public class ImageBuffer {
     public void render() {
 
         RenderBatch batch = new RenderBatch(1000);
-        batch.
-        batch = null;
+        //batch.
+        //batch = null;
 
         buffer.clear();
     }

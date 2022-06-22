@@ -1,7 +1,5 @@
 package dev.mv.engine.shader;
 
-import dev.mv.engine.exceptions.ShaderCreateException;
-import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.utils.FileUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,36 +22,36 @@ public class Shader {
         this.fragmentCode = FileUtils.loadShaderFile(fragmentShader);
     }
 
-    private void make() throws ShaderCreateException {
+    public void make() {
         this.programID = glCreateProgram();
 
         vertexShader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertexShader, this.vertexCode);
         glCompileShader(vertexShader);
         if(glGetShaderi(vertexShader, GL_COMPILE_STATUS) != 1) {
-            throw new ShaderCreateException("vertex shader error: "+glGetShaderInfoLog(vertexShader));
+            //throw new ShaderCreateException("vertex shader error: "+glGetShaderInfoLog(vertexShader));
         }
 
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragmentShader, this.fragmentCode);
         glCompileShader(fragmentShader);
         if(glGetShaderi(fragmentShader, GL_COMPILE_STATUS) != 1) {
-            throw new ShaderCreateException("fragment shader error: "+glGetShaderInfoLog(fragmentShader));
+            //throw new ShaderCreateException("fragment shader error: "+glGetShaderInfoLog(fragmentShader));
         }
     }
 
-    public void use() throws ShaderLinkException {
+    public void use() {
         glAttachShader(programID, vertexShader);
         glAttachShader(programID, fragmentShader);
 
         glBindAttribLocation(programID,0 , "vertices");
         glLinkProgram(programID);
         if((glGetProgrami(programID, GL_LINK_STATUS)) != 1) {
-            throw new ShaderLinkException("link program error: "+glGetProgramInfoLog(programID));
+            //throw new ShaderLinkException("link program error: "+glGetProgramInfoLog(programID));
         }
         glValidateProgram(programID);
         if((glGetProgrami(programID, GL_VALIDATE_STATUS)) != 1) {
-            throw new ShaderLinkException("link program error: "+glGetProgramInfoLog(programID));
+            //throw new ShaderLinkException("link program error: "+glGetProgramInfoLog(programID));
         }
 
         glUseProgram(programID);

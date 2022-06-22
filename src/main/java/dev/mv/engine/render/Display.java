@@ -110,7 +110,7 @@ public class Display{
             glClear(GL_COLOR_BUFFER_BIT);
 
             //might move position
-            imageBuffer.render();
+            //imageBuffer.render();
 
             long now = System.nanoTime();
             delta += (now - lastime) / ns;
