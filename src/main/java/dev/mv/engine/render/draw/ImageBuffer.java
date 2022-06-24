@@ -1,5 +1,7 @@
 package dev.mv.engine.render.draw;
 
+import dev.mv.engine.exceptions.ShaderCreateException;
+import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.render.Display;
 import dev.mv.engine.render.textures.Texture;
 
@@ -45,11 +47,9 @@ public class ImageBuffer {
         buffer.add(new VertexImage(indices, vertices, texCoords, tex));
     }
 
-    public void render() {
+    public void render() throws ShaderCreateException, ShaderLinkException {
 
         RenderBatch batch = new RenderBatch(1000);
-        //batch.
-        //batch = null;
 
         buffer.clear();
     }

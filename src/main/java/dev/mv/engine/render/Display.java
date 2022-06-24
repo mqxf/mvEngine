@@ -1,8 +1,12 @@
 package dev.mv.engine.render;
 
+import dev.mv.engine.exceptions.ShaderCreateException;
+import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.render.draw.Draw;
 import dev.mv.engine.render.draw.ImageBuffer;
+import dev.mv.engine.render.draw.RenderBatch;
 import dev.mv.engine.render.handler.DisplayManager;
+import dev.mv.engine.render.handler.Time;
 import lombok.Getter;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -15,7 +19,6 @@ import java.io.IOException;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Display{
@@ -26,11 +29,11 @@ public class Display{
 
     public static long winAddr;
 
-    private int programID;
     private int vertexShader;
     private int fragmentShader;
 
     private DisplayManager handle;
+    private RenderBatch batch;
     @Getter
     private ImageBuffer imageBuffer;
 
@@ -54,10 +57,11 @@ public class Display{
         imageBuffer = new ImageBuffer();
     }
 
-    public void run() {
+    public void run() throws IOException, ShaderCreateException, ShaderLinkException {
         imageBuffer.init(this);
         init();
         Draw.init(this);
+        batch = Draw.getBatch();
         handle.start();
         loop();
 
@@ -91,88 +95,55 @@ public class Display{
 
     private void loop() {
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        //shader("shader");
-        bind();
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA,  GL_ONE_MINUS_SRC_ALPHA);
 
-        long lastime = System.nanoTime();
-        double AmountOfTicks = 60;
-        double ns = 1000000000 / AmountOfTicks;
-        double delta = 0;
-        int frames = 0;
-        double time = System.currentTimeMillis();
+        long initialTime = System.nanoTime();
+        final double timeU = 1000000000 / 60;
+        final double timeF = 1000000000 / 60;
+        double deltaU = 0, deltaF = 0;
+        int frames = 0, ticks = 0;
+        long timer = System.currentTimeMillis();
 
         while (!glfwWindowShouldClose(winAddr)) {
 
             glfwPollEvents();
             glClear(GL_COLOR_BUFFER_BIT);
 
-            //might move position
-            //imageBuffer.render();
+            long currentTime = System.nanoTime();
+            deltaU += (currentTime - initialTime) / timeU;
+            deltaF += (currentTime - initialTime) / timeF;
+            initialTime = currentTime;
+            Time.setDelta(deltaF);
 
-            long now = System.nanoTime();
-            delta += (now - lastime) / ns;
-            lastime = now;
-
-            if(delta >= 1) {
-                glEnable(GL_TEXTURE_2D);
+            if (deltaU >= 1) {
                 handle.update();
+                ticks++;
+                deltaU--;
+            }
+
+            if (deltaF >= 1) {
+                batch.pushBatchToGPU();
+                batch.render();
                 frames++;
-                delta--;
-                if(System.currentTimeMillis() - time >= 1000) {
-                    System.out.println("fps:" + frames);
-                    time += 1000;
-                    frames = 0;
+                deltaF--;
+            }
+
+            if (System.currentTimeMillis() - timer > 1000) {
+                if (true) {
+                    System.out.println(String.format("UPS: %s, FPS: %s, Delta: %s", ticks, frames, deltaF));
                 }
+                Time.setFps(frames);
+                frames = 0;
+                ticks = 0;
+                timer += 1000;
             }
 
             glDisable(GL_TEXTURE_2D);
 
             glfwSwapBuffers(winAddr);
         }
-    }
-
-
-
-    private void shader(String filename) {
-        programID = glCreateProgram();
-
-        vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, readFile("./shaders/", filename+".vs"));
-        glCompileShader(vertexShader);
-        if(glGetShaderi(vertexShader, GL_COMPILE_STATUS) != 1) {
-            System.err.println("vertex shader error: "+glGetShaderInfoLog(vertexShader));
-            System.exit(1);
-        }
-
-        fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, readFile("./shaders/", filename+".fs"));
-        glCompileShader(fragmentShader);
-        if(glGetShaderi(fragmentShader, GL_COMPILE_STATUS) != 1) {
-            System.err.println("fragment shader error: "+glGetShaderInfoLog(fragmentShader));
-            System.exit(1);
-        }
-
-        glAttachShader(programID, vertexShader);
-        glAttachShader(programID, fragmentShader);
-
-        glBindAttribLocation(programID,0 , "vertices");
-        glLinkProgram(programID);
-        if((glGetProgrami(programID, GL_LINK_STATUS)) != 1) {
-            System.err.println("link program error: "+glGetProgramInfoLog(programID));
-            System.exit(1);
-        }
-        glValidateProgram(programID);
-        if((glGetProgrami(programID, GL_VALIDATE_STATUS)) != 1) {
-            System.err.println("validate program error: "+glGetProgramInfoLog(programID));
-            System.exit(1);
-        }
-    }
-
-    private void bind() {
-        glUseProgram(programID);
     }
 
     public static String readFile(String path, String filename) {
@@ -191,20 +162,6 @@ public class Display{
         }
 
         return string.toString();
-    }
-
-    public void setUniform1f(String name, float value) {
-        int location = glGetUniformLocation(programID, name);
-        if(location != -1) {
-            glUniform1f(location, value);
-        }
-    }
-
-    public void setUniform1i(String name, int value) {
-        int location = glGetUniformLocation(programID, name);
-        if(location != -1) {
-            glUniform1f(location, value);
-        }
     }
 
     public int getWidth() {

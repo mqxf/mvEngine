@@ -8,6 +8,10 @@ import java.io.IOException;
 public class FileUtils {
 
     public static String loadShaderFile(String file) {
+        if (!(new File(file).exists())) {
+            System.out.println("Could not load file: \"" + file  + "\"!");
+            return null;
+        }
         StringBuilder string = new StringBuilder();
         BufferedReader reader;
         try {
@@ -21,6 +25,7 @@ public class FileUtils {
         }catch(IOException e) {
             e.printStackTrace();
         }
+        //System.out.println(string.toString());
         return string.toString();
     }
 
