@@ -16,6 +16,7 @@ public class Main implements DisplayManager {
     RenderBatch batch;
     Random random;
     Texture md;
+    Texture lol;
 
     public static void main(String[] args) throws IOException, ShaderCreateException, ShaderLinkException {
         Display win = new Display("tester window", 500, 500, false, new Main());
@@ -26,7 +27,8 @@ public class Main implements DisplayManager {
     public void start() throws IOException {
         random = new Random();
         batch = Draw.getBatch();
-        md = new Texture("./res/medDemanjo.png");
+        md = new Texture("/textures/medDemanjo.png");
+        lol = new Texture("/textures/cultextur.png");
         /*
         batch.addVertexFloatArrayToBatch(new float[] {0.2f, 0.5f, 0.0f,     1.0f, 0.0f, 0.0f,//  tr
                                                 -0.2f, 0.5f, 0.0f,     0.0f, 1.0f, 0.0f,//  tl
@@ -43,10 +45,8 @@ public class Main implements DisplayManager {
 
     @Override
     public void update() {
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                Draw.drawImage(i * 100, j * 100, 100, 100, md);
-            }
-        }
+        //Draw.fillRect(100, 100, 100, 100, 0, new sSolidColor(255, 0, 0, 255));
+        //Draw.drawImage(100, 100, 100, 100, 0, md);
+        //Draw.drawImage(300, 300, 100, 100, 0, lol);
     }
 }

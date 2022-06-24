@@ -4,10 +4,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 
 public class FileUtils {
 
-    public static String loadShaderFile(String file) {
+    public static String loadShaderFile(URI file) {
         if (!(new File(file).exists())) {
             System.out.println("Could not load file: \"" + file  + "\"!");
             return null;

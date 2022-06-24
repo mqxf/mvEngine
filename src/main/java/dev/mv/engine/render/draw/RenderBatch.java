@@ -3,6 +3,7 @@ package dev.mv.engine.render.draw;
 import dev.mv.engine.exceptions.ShaderCreateException;
 import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.math.vector.Vector3f;
+import dev.mv.engine.render.textures.Texture;
 import dev.mv.engine.shader.Shader;
 import lombok.Getter;
 import org.lwjgl.BufferUtils;
@@ -10,6 +11,7 @@ import org.lwjgl.BufferUtils;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
@@ -17,11 +19,14 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 
 public class RenderBatch {
 
+    private int used;
     private int maxSize;
+    private RenderBatch child;
     private float[] data;
     private int vbuffer_id;
     private int ibuffer_id;
     private int bufferIndex = 0;
+    private static ArrayList<Texture> textures;
 
     @Getter
     private Shader shader;
@@ -33,14 +38,15 @@ public class RenderBatch {
 
     private ByteBuffer buffer;
 
-    //pos    color    texCoords
-    //f f f  f f f f  f f
+    //pos    color    texCoords   texID
+    //f f f  f f f f  f f         f
 
     private static final int POS_SIZE = 3;
     private static final int COLOR_SIZE = 4;
     private static final int TEX_SIZE = 2;
+    private static final int TEX_ID_SIZE = 1;
 
-    private static final int VERTEX_SIZE = POS_SIZE + COLOR_SIZE + TEX_SIZE;
+    private static final int VERTEX_SIZE = POS_SIZE + COLOR_SIZE + TEX_SIZE + TEX_ID_SIZE;
 
     private static final int VERTEX_BUFFER_INDEX = VERTEX_SIZE * 4;
     private static final int VERTEX_SIZE_BYTES = VERTEX_SIZE * Float.BYTES;
@@ -49,7 +55,10 @@ public class RenderBatch {
 
 
     public RenderBatch(int maxSize) throws ShaderCreateException, ShaderLinkException {
+        this.child = null;
+        this.used = 0;
         this.maxSize = maxSize;
+        textures = new ArrayList<>();
         setupBatch();
     }
 
@@ -65,7 +74,7 @@ public class RenderBatch {
         this.vbo = BufferUtils.createFloatBuffer(this.BUFFER_SIZE);
         this.ibo = BufferUtils.createIntBuffer(this.maxSize * 6);
 
-        shader = new Shader("./shaders/default.vs", "./shaders/default.fs");
+        shader = new Shader("/shaders/default.vs", "/shaders/default.fs");
 
         shader.make();
         shader.use();
@@ -81,11 +90,16 @@ public class RenderBatch {
     }
 
     public void addVertexFloatArrayToBatch(float[] data) {
+        if (used >= maxSize - 1) {
+            pushToChild(data);
+            return;
+        }
         generateQuadIndicies();
         for(int i = 0; i < data.length; i++) {
             this.data[this.bufferIndex * VERTEX_BUFFER_INDEX + i] = data[i];
         }
         this.bufferIndex++;
+        this.used++;
     }
 
     public void addVertexVectorArrayToBatch(Vector3f[] data) {
@@ -121,8 +135,10 @@ public class RenderBatch {
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1, 4, GL_FLOAT, false, VERTEX_SIZE_BYTES, POS_SIZE * Float.BYTES);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(2, 4, GL_FLOAT, false, VERTEX_SIZE_BYTES, (POS_SIZE + COLOR_SIZE) * Float.BYTES);
+        glVertexAttribPointer(2, 2, GL_FLOAT, false, VERTEX_SIZE_BYTES, (POS_SIZE + COLOR_SIZE) * Float.BYTES);
         glEnableVertexAttribArray(2);
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, VERTEX_SIZE_BYTES, (POS_SIZE + COLOR_SIZE + TEX_SIZE) * Float.BYTES);
+        glEnableVertexAttribArray(3);
 
         glDrawElements(GL_TRIANGLES, indices.length * (this.bufferIndex + 1), GL_UNSIGNED_INT, 0);
 
@@ -134,5 +150,36 @@ public class RenderBatch {
 
     private void reset() {
         this.bufferIndex = 0;
+        this.used = 9;
     }
+
+    private void pushToChild(float[] data) {
+        createChild();
+        child.addVertexFloatArrayToBatch(data);
+    }
+
+    private void createChild() {
+        if (child == null) {
+            try {
+                child = new RenderBatch(maxSize);
+            } catch (ShaderCreateException | ShaderLinkException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public RenderBatch getChild() {
+        return this.child;
+    }
+
+    public ArrayList<RenderBatch> getRecursiveChildrenAsArray() {
+        ArrayList<RenderBatch> children = new ArrayList<>();
+        RenderBatch child = this.child;
+        while (child != null) {
+            children.add(child);
+            child = child.getChild();
+        }
+        return children;
+    }
+
 }

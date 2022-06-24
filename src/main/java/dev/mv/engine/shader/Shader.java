@@ -2,9 +2,10 @@ package dev.mv.engine.shader;
 
 import dev.mv.engine.exceptions.ShaderCreateException;
 import dev.mv.engine.exceptions.ShaderLinkException;
-import dev.mv.engine.utils.FileUtils;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Scanner;
 
 import static org.lwjgl.opengl.GL20.*;
 
@@ -20,8 +21,20 @@ public class Shader {
     private int programID;
 
     public Shader(String vertexShader, String fragmentShader) {
-        this.vertexCode = FileUtils.loadShaderFile(vertexShader);
-        this.fragmentCode = FileUtils.loadShaderFile(fragmentShader);
+        this.vertexCode = "";
+        this.fragmentCode = "";
+        Scanner v = new Scanner(this.getClass().getResourceAsStream(vertexShader));
+        Scanner f = new Scanner(this.getClass().getResourceAsStream(fragmentShader));
+        try {
+            while (v.hasNext()) {
+                this.vertexCode += v.nextLine() + "\n";
+            }
+            while (f.hasNext()) {
+                this.fragmentCode += f.nextLine() + "\n";
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void make() throws ShaderCreateException {

@@ -4,7 +4,6 @@ import org.lwjgl.BufferUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -20,7 +19,7 @@ public class Texture {
         if(filename != null) {
             BufferedImage img;
             try {
-                img = ImageIO.read(new File(filename));
+                img = ImageIO.read(this.getClass().getResourceAsStream(filename));
                 this.width = img.getWidth();
                 this.height = img.getHeight();
 
