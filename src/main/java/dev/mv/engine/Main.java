@@ -8,6 +8,7 @@ import dev.mv.engine.render.Display;
 import dev.mv.engine.render.draw.Draw;
 import dev.mv.engine.render.draw.RenderBatch;
 import dev.mv.engine.render.handler.DisplayManager;
+import dev.mv.engine.render.handler.Handle;
 import dev.mv.engine.render.textures.Texture;
 
 import java.io.IOException;
@@ -29,14 +30,14 @@ public class Main implements DisplayManager {
     }
 
     @Override
-    public void start(Display d) {
+    public void start() {
         random = new Random();
         batch = Draw.getBatch();
         md = new Texture("/textures/medDemanjo.png");
         lol = new Texture("/textures/cultextur.png");
         guy = new Texture("/textures/littleGuy.png");
 
-        terrain = Terrain.generateTerrain(d);
+        terrain = Terrain.generateTerrain(Handle.getDisplay());
         /*
         batch.addVertexFloatArrayToBatch(new float[] {0.2f, 0.5f, 0.0f,     1.0f, 0.0f, 0.0f,//  tr
                                                 -0.2f, 0.5f, 0.0f,     0.0f, 1.0f, 0.0f,//  tl

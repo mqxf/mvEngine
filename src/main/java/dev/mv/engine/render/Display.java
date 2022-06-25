@@ -3,11 +3,10 @@ package dev.mv.engine.render;
 import dev.mv.engine.exceptions.ShaderCreateException;
 import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.render.draw.Draw;
-import dev.mv.engine.render.draw.ImageBuffer;
 import dev.mv.engine.render.draw.RenderBatch;
 import dev.mv.engine.render.handler.DisplayManager;
+import dev.mv.engine.render.handler.Handle;
 import dev.mv.engine.render.handler.Time;
-import lombok.Getter;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
@@ -34,8 +33,6 @@ public class Display{
 
     private DisplayManager handle;
     private RenderBatch batch;
-    @Getter
-    private ImageBuffer imageBuffer;
 
     private float[] vertices = {
             1.0f, 1.0f, 0.0f,
@@ -54,15 +51,14 @@ public class Display{
         this.height = height;
         this.rez = rez;
         this.handle = handle;
-        imageBuffer = new ImageBuffer();
+        Handle.setDisplay(this);
     }
 
     public void run() throws IOException, ShaderCreateException, ShaderLinkException {
-        imageBuffer.init(this);
         init();
         Draw.init(this);
         batch = Draw.getBatch();
-        handle.start(this);
+        handle.start();
         loop();
 
         glfwFreeCallbacks(winAddr);
@@ -99,50 +95,35 @@ public class Display{
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA,  GL_ONE_MINUS_SRC_ALPHA);
 
-        long initialTime = System.nanoTime();
-        final double timeU = 1000000000 / 60;
-        final double timeF = 1000000000 / 60;
-        double deltaU = 0, deltaF = 0;
-        int frames = 0, ticks = 0;
-        long timer = System.currentTimeMillis();
+        long last = System.currentTimeMillis();
+        long now = 0;
+        long diff = 0;
+        double delta = 0;
+        int fps = 0;
+        int maxFps = 60;
 
         while (!glfwWindowShouldClose(winAddr)) {
+            now = System.currentTimeMillis();
+            diff = now - last;
 
-            glfwPollEvents();
-            glClear(GL_COLOR_BUFFER_BIT);
+            if (diff >= Math.ceil(1000.0f / (float) maxFps)) {
+                glfwPollEvents();
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            long currentTime = System.nanoTime();
-            deltaU += (currentTime - initialTime) / timeU;
-            deltaF += (currentTime - initialTime) / timeF;
-            initialTime = currentTime;
-            Time.setDelta(deltaF);
-
-            if (deltaU >= 1) {
+                delta = (float) diff / 1000.0f;
+                fps = (int) (1000 / diff);
+                last = now;
+                Time.setDelta(delta);
+                Time.setFps(fps);
+                System.out.println("FPS: " + fps + ", delta: " + delta);
                 handle.update();
-                ticks++;
-                deltaU--;
-            }
 
-            if (deltaF >= 1) {
                 batch.pushBatchToGPU();
                 batch.render();
-                frames++;
-                deltaF--;
+
+                glDisable(GL_TEXTURE_2D);
+                glfwSwapBuffers(winAddr);
             }
-
-            if (System.currentTimeMillis() - timer > 1000) {
-                if (true) {
-                    System.out.println(String.format("UPS: %s, FPS: %s, Delta: %s", ticks, frames, deltaF));
-                }
-                Time.setFps(frames);
-                frames = 0;
-                ticks = 0;
-                timer += 1000;
-            }
-
-            glDisable(GL_TEXTURE_2D);
-
-            glfwSwapBuffers(winAddr);
         }
     }
 
