@@ -62,7 +62,7 @@ public class Display{
         init();
         Draw.init(this);
         batch = Draw.getBatch();
-        handle.start();
+        handle.start(this);
         loop();
 
         glfwFreeCallbacks(winAddr);
