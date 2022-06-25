@@ -54,6 +54,10 @@ public class Texture {
         glBindTexture(GL_TEXTURE_2D, this.id);
     }
 
+    public int getID(){
+        return this.id;
+    }
+
     public void unbind() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }

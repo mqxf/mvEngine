@@ -26,7 +26,8 @@ public class RenderBatch {
     private int vbuffer_id;
     private int ibuffer_id;
     private int bufferIndex = 0;
-    private static ArrayList<Texture> textures;
+
+    private ArrayList<Texture> textures;
 
     @Getter
     private Shader shader;
@@ -121,9 +122,19 @@ public class RenderBatch {
 
         this.vbo.flip();
         this.ibo.flip();
+        pushChildToGPU();
     }
 
     public void render() {
+
+        int[] ids = new int[8];
+
+        for(int i = 0; i < this.textures.size() && i < 8; i++) {
+            ids[this.textures.get(i).getID()] = this.textures.get(i).getID();
+        }
+
+
+        shader.setUniform1iv("TEX_SAMPLER", ids);
 
         glBindBuffer(GL_ARRAY_BUFFER, this.vbuffer_id);
         glBufferData(GL_ARRAY_BUFFER, this.vbo, GL_DYNAMIC_DRAW);
@@ -146,16 +157,45 @@ public class RenderBatch {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         reset();
+        childRender();
     }
+
+    public void addTexture(Texture tex) {
+        if(!this.textures.contains(tex)){
+            this.textures.add(tex);
+
+            glActiveTexture(GL_TEXTURE0 + tex.getID());
+            tex.bind();
+        }
+    }
+
 
     private void reset() {
         this.bufferIndex = 0;
-        this.used = 9;
+        this.used = 0;
+
+        for(Texture tex : this.textures){
+            tex.unbind();
+        }
+
+        this.textures.clear();
     }
 
     private void pushToChild(float[] data) {
         createChild();
         child.addVertexFloatArrayToBatch(data);
+    }
+
+    private void pushChildToGPU() {
+        if (child != null) {
+            child.pushBatchToGPU();
+        }
+    }
+
+    private void childRender() {
+        if (child != null) {
+            child.render();
+        }
     }
 
     private void createChild() {

@@ -5,25 +5,8 @@ import dev.mv.engine.exceptions.ShaderLinkException;
 import dev.mv.engine.render.Display;
 import dev.mv.engine.render.textures.Texture;
 
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
-
 public class Draw {
 
-    static FloatBuffer vecBuffer;
-    static IntBuffer indBuffer;
-
-    private static int drawCount = 0;
-    private static int v_id;
-    private static int i_id;
-    private static int t_id;
-    private static int usedTextures = 1;
-    private int[] texSlots = new int[] {0, 1, 2, 3, 4, 5, 6, 7};
     private static Display d;
     private static RenderBatch batch;
 
@@ -69,22 +52,13 @@ public class Draw {
         batch.addVertexFloatArrayToBatch(vertices);
     }
 
-    public static void stripRect(int x1, int y1, int width1, int height1, int depth) {
-        float x = (float)x1/(float)d.getWidth()*2.0f-1.0f;
-        float y = ((float)y1/(float)d.getHeight()*2.0f-1.0f)*-1.0f;
-        float width = (float)width1/(float)d.getWidth()*2.0f;
-        float height = (float)height1/(float)d.getHeight()*2.0f;
-
-        glLineWidth((float)depth);
-
-        int[] indices = {0, 1, 1, 3, 2, 0, 2, 3};
-        float[] vertices = {
-                x, y, 0.0f,					 0.0f, 0.0f,
-                x + width, y, 0.0f,			 0.0f, 0.0f,
-                x, y - height, 0.0f,		 0.0f, 0.0f,
-                x + width, y - height, 0.0f, 0.0f, 0.0f,
-        };
-        //render(vertices, indices, false, GL_LINES);
+    public static void drawColorWheel(int x, int y, int width, int height) {
+        int xoff = width / 2;
+        int yoff = height / 2;
+        Draw.fillRect(x, y, xoff, yoff, 0, new sGradientColor(255, 0, 0, 255, 255, 0, 127, 255, 255, 255, 0, 255, 255, 255, 255, 255));
+        Draw.fillRect(x + xoff, y, xoff, yoff, 0, new sGradientColor(255, 0, 127, 255, 255, 0, 255, 255, 255, 255, 255, 255, 0, 0, 255, 255));
+        Draw.fillRect(x, y + yoff, xoff, yoff, 0, new sGradientColor(255, 255, 0, 255, 255, 255, 255, 255, 0, 255, 0, 255, 0, 255, 127, 255));
+        Draw.fillRect(x + xoff, y + yoff, xoff, yoff, 0, new sGradientColor(255, 255, 255, 255, 0, 0, 255, 255, 0, 255, 127, 255, 0, 255, 255, 255));
     }
 
     public static void drawImage(int x1, int y1, int width1, int height1, int zLayer, Texture tex) {
@@ -94,45 +68,21 @@ public class Draw {
         float height = (float)height1/(float)d.getHeight()*2.0f;
         float z = (float) zLayer / 100.0f;
 
+        batch.addTexture(tex);
+
         float[] vertices = new float[] {
-                x, y, z,					    0.0f, 0.0f, 0.0f, 0.0f,     1.0f, 0.0f,     0.0f,
-                x + width, y, z,			    0.0f, 0.0f, 0.0f, 0.0f,     0.0f, 0.0f,     0.0f,
-                x, y - height, z,		        0.0f, 0.0f, 0.0f, 0.0f,     1.0f, 1.0f,     0.0f,
-                x + width, y - height, z,       0.0f, 0.0f, 0.0f, 0.0f,     0.0f, 1.0f,     0.0f
+                x, y, z,					    0.0f, 0.0f, 0.0f, 0.0f,     1.0f, 0.0f,     tex.getID(),
+                x + width, y, z,			    0.0f, 0.0f, 0.0f, 0.0f,     0.0f, 0.0f,     tex.getID(),
+                x, y - height, z,		        0.0f, 0.0f, 0.0f, 0.0f,     1.0f, 1.0f,     tex.getID(),
+                x + width, y - height, z,       0.0f, 0.0f, 0.0f, 0.0f,     0.0f, 1.0f,     tex.getID()
         };
 
         batch.addVertexFloatArrayToBatch(vertices);
     }
 
-    private static void render(int drawCount, boolean tex, int mode) {
-
-        glBindBuffer(GL_ARRAY_BUFFER, v_id);
-        glBufferData(GL_ARRAY_BUFFER, vecBuffer, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_id);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indBuffer, GL_STATIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, v_id);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_id);
-
-        glTexCoordPointer(2, GL_FLOAT, 0, 0);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 5*Float.BYTES, 0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 5*Float.BYTES, 3*Float.BYTES);
-        glEnableVertexAttribArray(1);
-
-        glDrawElements(mode, drawCount, GL_UNSIGNED_INT, 0);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-
     public static void init(Display display, RenderBatch renderBatch) {
-        d = d;
-        batch = batch;
+        d = display;
+        batch = renderBatch;
     }
     public static void init(Display display) throws ShaderCreateException, ShaderLinkException {
         d = display;

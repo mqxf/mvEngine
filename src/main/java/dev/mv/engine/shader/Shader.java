@@ -89,4 +89,11 @@ public class Shader {
             glUniform1f(location, value);
         }
     }
+
+    public void setUniform1iv(String name, int[] value) {
+        int location = glGetUniformLocation(this.programID, name);
+        if(location != -1) {
+            glUniform1iv(location, value);
+        }
+    }
 }
